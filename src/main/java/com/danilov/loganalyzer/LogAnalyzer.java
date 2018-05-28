@@ -8,53 +8,38 @@ import java.util.List;
 import java.util.Locale;
 
 public class LogAnalyzer {
+    private final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z", Locale.US);
 
-    public static void main(String[] args) throws IOException {
-        String path = "I:/log.txt";
-        DateTimeFormatter format = DateTimeFormatter.ofPattern("d/MMM/yyyy:HH:mm:ss", Locale.US);
-        LocalDateTime timeFrom = LocalDateTime.parse("07/Mar/2004:16:23:12", format);
-        LocalDateTime timeTo = LocalDateTime.parse("07/Mar/2004:17:17:27", format);
-        getCollection(path, timeFrom, timeTo).toString();
+    public LogAnalyzer(){
+
     }
 
-    public static List<Token> getCollection(String path, LocalDateTime timeFrom, LocalDateTime timeTo) throws IOException {
+    public List<Token> getCollection(String path, LocalDateTime timeFrom, LocalDateTime timeTo) throws IOException {
         File pathToFile = new File(path);
         List<Token> tokens = new ArrayList<>();
 
-        BufferedReader br = null;
-        try{
-            br = new BufferedReader(new FileReader(pathToFile));
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(pathToFile), "UTF-8"))) {
+
             String strLine;
             while ((strLine = br.readLine()) != null) {
-                DateTimeFormatter format = DateTimeFormatter.ofPattern("d/MMM/yyyy:HH:mm:ss", Locale.US);
-                LocalDateTime currentTime = LocalDateTime.parse(strLine.substring(strLine.indexOf("[")+1, strLine.lastIndexOf("-")-1), format);
-                 if (timeFrom.isBefore(currentTime) && timeTo.isAfter(currentTime)) {
-                    String message = strLine.substring(strLine.indexOf("\""));
-                    LocalDateTime time = LocalDateTime.parse(strLine.substring(strLine.indexOf("[")+1, strLine.lastIndexOf("-")-1), format);
-                    tokens.add(new Token(message, getHttpMethod(strLine), time));
+                LocalDateTime currentTime = LocalDateTime.parse(strLine.substring(strLine.indexOf("[") + 1, strLine.indexOf("]")), DATE_TIME_FORMATTER);
+                if (timeFrom.isBefore(currentTime) && timeTo.isAfter(currentTime)) {
+                    tokens.add(new Token(getMessage(strLine), getHttpMethod(strLine), getTime(strLine)));
                 }
-            }
-        } finally {
-            if (br != null) {
-                br.close();
             }
         }
         return tokens;
     }
 
-    private static HttpMethod getHttpMethod(String s) {
-        return s.contains(HttpMethod.GET.getName())? HttpMethod.GET : HttpMethod.POST;
+    public LocalDateTime getTime(String strLine) {
+        return LocalDateTime.parse(strLine.substring(strLine.indexOf("[") + 1, strLine.indexOf("]")), DATE_TIME_FORMATTER);
     }
 
-    private static class Token {
-        private String message;
-        private HttpMethod method;
-        private LocalDateTime time;
+    public String getMessage(String strLine) {
+        return strLine.substring(strLine.indexOf("\"") + 4);
+    }
 
-        private Token(String message, HttpMethod method, LocalDateTime time) {
-            this.message = message;
-            this.method = method;
-            this.time = time;
-        }
+    public HttpMethod getHttpMethod(String s) {
+        return s.toUpperCase().contains(HttpMethod.GET.getName()) ? HttpMethod.GET : HttpMethod.POST;
     }
 }

@@ -2,10 +2,10 @@ package com.danilov.loganalyzer;
 
 public enum HttpMethod {
     GET("GET"), POST("POST");
-    String name;
+    private String name;
 
     HttpMethod(String n) {
-        name = n;
+        this.name = n;
     }
 
     String getName() {
